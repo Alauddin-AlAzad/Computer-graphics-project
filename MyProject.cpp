@@ -1,51 +1,80 @@
-#include <GL/glut.h>
-#include <math.h>
-
-#define WIDTH  800
-#define HEIGHT 600
-#define PI     3.1415926f
-
-int sunX = WIDTH / 2;
-int sunY = HEIGHT / 2;
-int sunR = 60;
-
-void drawPixel(int x, int y) {
-    glBegin(GL_POINTS);
-    glVertex2i(x, y);
-    glEnd();
-}
-
-void plotCirclePoints(int xc, int yc, int x, int y) {
-    drawPixel(xc + x, yc + y); drawPixel(xc - x, yc + y);
-    drawPixel(xc + x, yc - y); drawPixel(xc - x, yc - y);
-    drawPixel(xc + y, yc + x); drawPixel(xc - y, yc + x);
-    drawPixel(xc + y, yc - x); drawPixel(xc - y, yc - x);
-}
-
-void midpointCircle(int xc, int yc, int r) {
-    int x = 0, y = r, p = 1 - r;
-    while (x <= y) {
-        plotCirclePoints(xc, yc, x, y);
-        x++;
-        if (p < 0) p += 2 * x + 1;
-        else { y--; p += 2 * (x - y) + 1; }
-    }
-}
-
-void drawFilledCircle(int xc, int yc, int r) {
-    int i;
-    for (i = 0; i <= r; i++) midpointCircle(xc, yc, i);
-}
+#include "platform.h"
+#include "globals.h"
 
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
 
-    /* draw sun */
-    glColor3f(1.0f, 0.85f, 0.15f);
-    drawFilledCircle(sunX, sunY, sunR);
+    drawBgStars();
+    drawOrbits();
+    drawSun();
+    drawPlanets();
+    drawAsteroids();
+    drawBullets();
+
+    drawShockwaves();
+    drawParticles();
+    drawSpaceship(ship.x, ship.y);
+
+    // instructions
+    drawText(20, HEIGHT - 30, "W A S D = Move");
+    drawText(20, HEIGHT - 55, "SPACE = Fire");
+    drawText(20, HEIGHT - 80, "R = Reset");
 
     glutSwapBuffers();
 }
+
+// Game loop
+
+void update(int value) {
+    updatePlanets();
+    updatePlanetRespawn();        // this makes destroyed planets come back
+    updateParticles();
+    updateShockwaves();
+    updateAsteroids();
+    updateBullets();
+
+    checkBulletAsteroid();
+    checkAsteroidShip();
+    checkAsteroidPlanet();
+    checkShipPlanet();
+
+    glutPostRedisplay();
+    glutTimerFunc(16, update, 0);
+}
+
+// Keyboard controls
+
+void keyboard(unsigned char key, int x, int y) {
+    int step = 14;
+    if (key == 'w' || key == 'W') ship.y += step;
+    if (key == 's' || key == 'S') ship.y -= step;
+    if (key == 'a' || key == 'A') ship.x -= step;
+    if (key == 'd' || key == 'D') ship.x += step;
+    if (key == 'r' || key == 'R') initScene();
+
+    if (key == ' ') {
+        int k;
+        for (k = 0; k < 20; k++) {
+            if (!bullets[k].active) {
+                bullets[k].x = ship.x;
+                bullets[k].y = ship.y + 22;
+                bullets[k].vy = 14.0f;
+                bullets[k].active = 1;
+                if (k >= bulletCount) bulletCount = k + 1;
+                break;
+            }
+        }
+    }
+
+    // keep ship inside screen
+    if (ship.x < 20) ship.x = 20;
+    if (ship.x > WIDTH - 20) ship.x = WIDTH - 20;
+    if (ship.y < 20) ship.y = 20;
+    if (ship.y > HEIGHT - 20) ship.y = HEIGHT - 20;
+
+    glutPostRedisplay();
+}
+
 
 void init() {
     glClearColor(0, 0, 0, 1);
@@ -55,13 +84,23 @@ void init() {
     gluOrtho2D(0, WIDTH, 0, HEIGHT);
 }
 
+
 int main(int argc, char** argv) {
+    srand((unsigned int)time(0));   // random stuff
+
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(WIDTH, HEIGHT);
-    glutCreateWindow("Solar Blast");
+    glutCreateWindow("Solar Blast - PRO EDITION");
+
     init();
+    initScene();
+
     glutDisplayFunc(display);
+    glutKeyboardFunc(keyboard);
+    glutTimerFunc(16, update, 0);
+
     glutMainLoop();
     return 0;
+
 }
