@@ -19,17 +19,7 @@ void drawAsteroids() {
         for (int dy = -r; dy <= r; dy++) {
             int w = (int)sqrt(r*r - dy*dy);
             for (int dx = -w; dx <= w; dx++) {
-                float nx = (float)dx / r;
-                float ny = (float)dy / r;
-                float nz = sqrt(1.0f - nx*nx - ny*ny);
-
-                float lFactor = nx*0.3f + ny*0.8f + nz*0.5f;
-                if (lFactor < 0) lFactor = 0;
-
-                float noise = sin(dx*1.4f + ax) * cos(dy*1.4f + ay);
-                float c = 0.3f * (0.2f + 0.8f * lFactor) + noise * 0.04f;
-
-                glColor3f(c+0.1f, c+0.05f, c);  
+                glColor3f(0.6f, 0.5f, 0.4f);
                 drawPixel(ax + dx, ay + dy);
             }
         }
